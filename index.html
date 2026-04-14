@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Defender</title>
+    <style>
+        /* --- CSS --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #050505;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 150, 255, 0.2);
+            border: 2px solid #1a1a2e;
+            border-radius: 10px;
+            overflow: hidden;
+            width: 400px;
+            height: 600px;
+            max-width: 100%;
+            max-height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI LAYAR MENU */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #ff0055; /* Warna Merah untuk Game Over */
+            text-transform: uppercase;
+            text-shadow: 0 0 20px #ff0055;
+            margin-bottom: 5px;
+            letter-spacing: 3px;
+            font-weight: 900;
+        }
+
+        h1.start-title {
+            color: #00d2ff;
+            text-shadow: 0 0 20px #00d2ff;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #ddd;
+            margin-bottom: 30px;
+            max-width: 80%;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px #ff0055;
+            z-index: 5;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid #333;
+        }
+
+        /* TOMBOL UTAMA */
+        .btn {
+            pointer-events: auto;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #ff0055, #ff5e62);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.8);
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+        }
+        .btn-start:hover {
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.8);
+        }
+
+        /* KONTROL PANAH (ON-SCREEN) */
+        .controls-layer {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none; /* Biarkan area tembus kecuali tombol */
+            z-index: 8;
+        }
+
+        .control-btn {
+            pointer-events: auto;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.1s;
+            backdrop-filter: blur(2px);
+            user-select: none;
+        }
+
+        .control-btn:active, .control-btn.active {
+            background: rgba(0, 210, 255, 0.4);
+            border-color: #00d2ff;
+            transform: scale(0.95);
+            box-shadow: 0 0 15px #00d2ff;
+        }
+
+        /* Responsif untuk HP kecil */
+        @media (max-width: 450px) {
+            h1 { font-size: 2rem; }
+            #game-container { border: none; border-radius: 0; width: 100%; height: 100vh; }
+            .control-btn { width: 70px; height: 70px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="score-display">Skor: 0</div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+        <!-- LAYER KONTROL PANAH -->
+        <div class="controls-layer">
+            <div id="btn-left" class="control-btn">◀</div>
+            <div id="btn-right" class="control-btn">▶</div>
+        </div>
+
+        <!-- LAYAR MENU / GAME OVER -->
+        <div id="menu-overlay" class="ui-layer">
+            <h1 id="menu-title" class="start-title">GALAXY DEFENDER</h1>
+            <p id="menu-subtitle">Hindari asteroid. Gunakan tombol panah atau keyboard.</p>
+            <button id="start-btn" class="btn btn-start">MULAI</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score-display');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const startBtn = document.getElementById('start-btn');
+        const menuTitle = document.getElementById('menu-title');
+        const menuSubtitle = document.getElementById('menu-subtitle');
+        
+        // Tombol On-Screen
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        let gameRunning = false;
+        let score = 0;
+        let frameCount = 0;
+        let animationId;
+
+        // Player Setup
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 70,
+            radius: 15,
+            speed: 6,
+            dx: 0,
+            color: '#00d2ff'
+        };
+
+        let enemies = [];
+        let particles = [];
+        let stars = [];
+
+        // --- INPUT CONTROLS (Keyboard & On-Screen Buttons) ---
+        
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'd') setMoveRight();
+            if (e.key === 'ArrowLeft' || e.key === 'a') setMoveLeft();
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if ((e.key === 'ArrowRight' || e.key === 'd') && player.dx > 0) stopMove();
+            if ((e.key === 'ArrowLeft' || e.key === 'a') && player.dx < 0) stopMove();
+        });
+
+        // Fungsi Gerak
+        function setMoveLeft() { player.dx = -player.speed; btnLeft.classList.add('active'); }
+        function setMoveRight() { player.dx = player.speed; btnRight.classList.add('active'); }
+        function stopMove() { 
+            player.dx = 0; 
+            btnLeft.classList.remove('active'); 
+            btnRight.classList.remove('active'); 
+        }
+
+        // Event Listener Tombol Panah (Mouse & Touch)
+        // Tombol Kiri
+        const handleLeftStart = (e) => { if(e.cancelable) e.preventDefault(); setMoveLeft(); };
+        const handleLeftEnd = (e) => { if(e.cancelable) e.preventDefault(); stopMove(); };
+        
+        btnLeft.addEventListener('mousedown', handleLeftStart);
+        btnLeft.addEventListener('touchstart', handleLeftStart);
+        btnLeft.addEventListener('mouseup', handleLeftEnd);
+        btnLeft.addEventListener('touchend', handleLeftEnd);
+        btnLeft.addEventListener('mouseleave', handleLeftEnd); // Jika mouse keluar tombol
+
+        // Tombol Kanan
+        const handleRightStart = (e) => { if(e.cancelable) e.preventDefault(); setMoveRight(); };
+        const handleRightEnd = (e) => { if(e.cancelable) e.preventDefault(); stopMove(); };
+
+        btnRight.addEventListener('mousedown', handleRightStart);
+        btnRight.addEventListener('touchstart', handleRightStart);
+        btnRight.addEventListener('mouseup', handleRightEnd);
+        btnRight.addEventListener('touchend', handleRightEnd);
+        btnRight.addEventListener('mouseleave', handleRightEnd);
+
+        // --- BACKGROUND STARS ---
+        class Star {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.speed = Math.random() * 3 + 0.5;
+                this.brightness = Math.random();
+            }
+            update() {
+                this.y += this.speed;
+                this.brightness += (Math.random() - 0.5) * 0.1;
+                if (this.brightness > 1) this.brightness = 1;
+                if (this.brightness < 0.3) this.brightness = 0.3;
+                if (this.y > canvas.height) {
+                    this.y = 0;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.brightness})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 50; i++) stars.push(new Star());
+
+        // --- GAMBAR PLAYER ---
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            if (player.dx > 0) ctx.rotate(0.15);
+            if (player.dx < 0) ctx.rotate(-0.15);
+
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(15, 15);
+            ctx.lineTo(0, 10);
+            ctx.lineTo(-15, 15);
+            ctx.closePath();
+            ctx.fillStyle = player.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.color;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0, -10);
+            ctx.lineTo(3, 2);
+            ctx.lineTo(-3, 2);
+            ctx.closePath();
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(-5, 12);
+            ctx.lineTo(0, 12 + Math.random() * 15);
+            ctx.lineTo(5, 12);
+            ctx.fillStyle = '#ff9900';
+            ctx.shadowColor = '#ff5500';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function updatePlayer() {
+            player.x += player.dx;
+            if (player.x < 20) player.x = 20;
+            if (player.x > canvas.width - 20) player.x = canvas.width - 20;
+        }
+
+        // --- MUSUH (ASTEROID) ---
+        class Enemy {
+            constructor() {
+                this.radius = Math.random() * 15 + 15;
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = -this.radius;
+                this.speed = Math.random() * 2 + 2 + (score * 0.002);
+                this.angle = 0;
+                this.spinSpeed = (Math.random() - 0.5) * 0.1;
+                this.vertices = [];
+                const numVertices = 8;
+                for (let i = 0; i < numVertices; i++) {
+                    const angle = (i / numVertices) * Math.PI * 2;
+                    const r = this.radius * (0.8 + Math.random() * 0.4);
+                    this.vertices.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.beginPath();
+                ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
+                for (let i = 1; i < this.vertices.length; i++) {
+                    ctx.lineTo(this.vertices[i].x, this.vertices[i].y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = '#6a4c93';
+                ctx.strokeStyle = '#ff0055';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff0055';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+            update() {
+                this.y += this.speed;
+                this.angle += this.spinSpeed;
+            }
+        }
+
+        // --- PARTIKEL ---
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = Math.random() * 6 - 3;
+                this.speedY = Math.random() * 6 - 3;
+                this.color = color;
+                this.life = 1.0;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= 0.02;
+            }
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // --- GAME LOOP ---
+        function animate() {
+            if (!gameRunning && particles.length === 0) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background
+            stars.forEach(star => { star.update(); star.draw(); });
+
+            if (gameRunning) {
+                updatePlayer();
+                drawPlayer();
+
+                let spawnRate = 60;
+                if (score > 500) spawnRate = 45;
+                if (score > 1000) spawnRate = 30;
+
+                if (frameCount % spawnRate === 0) enemies.push(new Enemy());
+
+                for (let i = 0; i < enemies.length; i++) {
+                    let e = enemies[i];
+                    e.update();
+                    e.draw();
+
+                    const dist = Math.hypot(player.x - e.x, player.y - e.y);
+                    if (dist - e.radius - player.radius < -5) {
+                        gameOver();
+                    }
+
+                    if (e.y > canvas.height + e.radius) {
+                        enemies.splice(i, 1);
+                        score += 10;
+                        scoreEl.innerText = `Skor: ${score}`;
+                        i--;
+                    }
+                }
+                score++;
+                scoreEl.innerText = `Skor: ${score}`;
+                frameCount++;
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+
+            if (gameRunning || particles.length > 0) animationId = requestAnimationFrame(animate);
+        }
+
+        function startGame() {
+            score = 0;
+            frameCount = 0;
+            enemies = [];
+            particles = [];
+            player.x = canvas.width / 2;
+            scoreEl.innerText = "Skor: 0";
+            gameRunning = true;
+            
+            // Reset Tampilan Menu
+            menuOverlay.classList.add('hidden');
+            
+            animate();
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            
+            // Efek Ledakan
+            for (let i = 0; i < 30; i++) {
+                particles.push(new Particle(player.x, player.y, '#00d2ff'));
+                particles.push(new Particle(player.x, player.y, '#ff9900'));
+            }
+            
+            setTimeout(() => {
+                // Ubah ke Game Over Style
+                menuTitle.innerText = "GAME OVER";
+                menuTitle.classList.remove('start-title'); // Hapus warna biru
+                menuSubtitle.innerText = `Skor Akhir: ${score}`;
+                startBtn.innerText = "PLAY AGAIN";
+                startBtn.classList.remove('btn-start'); // Ubah jadi tombol merah
+                menuOverlay.classList.remove('hidden');
+            }, 800);
+        }
+
+        startBtn.addEventListener('click', () => {
+            // Reset tombol ke warna biru jika sebelumnya merah (restart)
+            startBtn.classList.add('btn-start');
+            startGame();
+        });
+
+    </script>
+</body>
+  </html>
