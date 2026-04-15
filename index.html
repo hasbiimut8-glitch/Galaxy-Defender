@@ -2,51 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galaxy Defender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GeoSpace Mobile</title>
     <style>
-        /* --- CSS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@400;600;700&display=swap');
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none;
+            touch-action: none;
+            -webkit-touch-callout: none;
             -webkit-user-select: none;
+            user-select: none;
         }
-
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #050505;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            background: #0a0a0f;
+            font-family: 'Orbitron', monospace;
             overflow: hidden;
-        }
-
-        #game-container {
-            position: relative;
-            box-shadow: 0 0 40px rgba(0, 150, 255, 0.2);
-            border: 2px solid #1a1a2e;
-            border-radius: 10px;
-            overflow: hidden;
-            width: 400px;
-            height: 600px;
-            max-width: 100%;
-            max-height: 100vh;
-        }
-
-        canvas {
-            display: block;
-            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            position: fixed;
             width: 100%;
             height: 100%;
+            touch-action: none;
         }
-
-        /* UI LAYAR MENU */
-        .ui-layer {
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #gameCanvas {
+            flex: 1;
+            width: 100%;
+            background: linear-gradient(180deg, #0a0a1a 0%, #1a0a2e 50%, #0a0a1a 100%);
+            display: block;
+        }
+        
+        /* UI Overlay */
+        .ui-overlay {
             position: absolute;
             top: 0;
             left: 0;
@@ -55,459 +52,916 @@
             pointer-events: none;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(5px);
-            transition: opacity 0.3s ease;
+            justify-content: space-between;
+            padding: 10px;
             z-index: 10;
         }
-
-        .hidden {
-            opacity: 0;
-            pointer-events: none;
+        
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
         }
-
-        h1 {
-            font-size: 3rem;
-            color: #ff0055; /* Warna Merah untuk Game Over */
-            text-transform: uppercase;
-            text-shadow: 0 0 20px #ff0055;
-            margin-bottom: 5px;
-            letter-spacing: 3px;
-            font-weight: 900;
+        
+        .stat-box {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+            min-width: 70px;
         }
-
-        h1.start-title {
-            color: #00d2ff;
-            text-shadow: 0 0 20px #00d2ff;
+        
+        .score-box { border-color: #00ffff; text-shadow: 0 0 5px #00ffff; }
+        .streak-box { border-color: #ffdd00; text-shadow: 0 0 5px #ffdd00; }
+        .health-box { border-color: #ff4444; text-shadow: 0 0 5px #ff4444; }
+        
+        .stat-value {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 2px;
         }
-
-        p {
-            font-size: 1.2rem;
-            color: #ddd;
-            margin-bottom: 30px;
-            max-width: 80%;
-        }
-
-        #score-display {
+        
+        /* Progress Bar */
+        .progress-container {
             position: absolute;
-            top: 15px;
-            left: 20px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 0 0 10px #ff0055;
-            z-index: 5;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 15px;
-            border-radius: 20px;
-            border: 1px solid #333;
+            top: 70px;
+            left: 10px;
+            right: 10px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
         }
-
-        /* TOMBOL UTAMA */
-        .btn {
-            pointer-events: auto;
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #fff;
-            background: linear-gradient(45deg, #ff0055, #ff5e62);
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            width: 0%;
+            transition: width 0.1s linear;
         }
-
-        .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(255, 0, 85, 0.8);
-        }
-
-        .btn-start {
-            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
-        }
-        .btn-start:hover {
-            box-shadow: 0 0 30px rgba(0, 210, 255, 0.8);
-        }
-
-        /* KONTROL PANAH (ON-SCREEN) */
-        .controls-layer {
+        
+        /* Touch Controls */
+        .touch-controls {
             position: absolute;
             bottom: 20px;
+            left: 0;
             width: 100%;
+            height: 120px;
+            pointer-events: auto;
             display: flex;
             justify-content: space-between;
             padding: 0 20px;
-            pointer-events: none; /* Biarkan area tembus kecuali tombol */
-            z-index: 8;
+            z-index: 20;
         }
-
-        .control-btn {
-            pointer-events: auto;
+        
+        .control-area {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .d-pad {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-control {
             width: 60px;
             height: 60px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
             border-radius: 50%;
             display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            transition: all 0.1s;
+        }
+        
+        .btn-control:active {
+            background: rgba(0, 255, 255, 0.5);
+            transform: scale(0.95);
+        }
+        
+        .btn-shoot {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 0, 255, 0.2);
+            border: 3px solid #ff00ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ff00ff;
+            font-size: 16px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+        
+        .btn-shoot:active {
+            background: rgba(255, 0, 255, 0.5);
+            transform: scale(0.95);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.6);
+        }
+        
+        /* Quiz Modal */
+        .quiz-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 30px;
-            color: white;
+            z-index: 100;
+            padding: 20px;
+        }
+        
+        .quiz-container {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1e);
+            border: 2px solid #ff00ff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
+        }
+        
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 0, 255, 0.3);
+        }
+        
+        .quiz-title {
+            color: #ff00ff;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .quiz-timer {
+            background: #ff00ff;
+            color: #000;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .question-text {
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .answers-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .answer-btn {
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            color: #fff;
+            padding: 15px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
             cursor: pointer;
-            transition: all 0.1s;
-            backdrop-filter: blur(2px);
-            user-select: none;
+            border-radius: 10px;
+            transition: all 0.2s;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            min-height: 50px;
         }
-
-        .control-btn:active, .control-btn.active {
-            background: rgba(0, 210, 255, 0.4);
-            border-color: #00d2ff;
-            transform: scale(0.95);
-            box-shadow: 0 0 15px #00d2ff;
+        
+        .answer-btn:active:not(.disabled) {
+            background: rgba(0, 255, 255, 0.3);
+            transform: scale(0.98);
         }
-
-        /* Responsif untuk HP kecil */
-        @media (max-width: 450px) {
-            h1 { font-size: 2rem; }
-            #game-container { border: none; border-radius: 0; width: 100%; height: 100vh; }
-            .control-btn { width: 70px; height: 70px; }
+        
+        .answer-btn.correct {
+            background: rgba(0, 255, 0, 0.3) !important;
+            border-color: #00ff00 !important;
+        }
+        
+        .answer-btn.wrong {
+            background: rgba(255, 0, 0, 0.3) !important;
+            border-color: #ff0000 !important;
+        }
+        
+        .answer-btn.disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        .feedback {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            min-height: 40px;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .feedback.correct { color: #00ff00; }
+        .feedback.wrong { color: #ff4444; }
+        
+        /* Menu Screens */
+        .menu-screen, .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.98);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .game-over-screen { display: none; }
+        
+        h1 {
+            font-size: 36px;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient 3s ease infinite;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            background: transparent;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+        
+        .btn:active {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(0.98);
+        }
+        
+        .controls-info {
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+        
+        .final-score {
+            font-size: 20px;
+            color: #fff;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+        
+        .quiz-stats {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .pause-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff00ff;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px #ff00ff;
+            display: none;
+            z-index: 90;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .hint-text {
+            position: absolute;
+            bottom: 150px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-
-    <div id="game-container">
-        <div id="score-display">Skor: 0</div>
-        <canvas id="gameCanvas" width="400" height="600"></canvas>
-
-        <!-- LAYER KONTROL PANAH -->
-        <div class="controls-layer">
-            <div id="btn-left" class="control-btn">◀</div>
-            <div id="btn-right" class="control-btn">▶</div>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="top-bar">
+                <div class="stat-box score-box">
+                    SCORE
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat-box streak-box">
+                    STREAK
+                    <span class="stat-value" id="streak">0</span>
+                </div>
+                <div class="stat-box health-box">
+                    HP
+                    <span class="stat-value" id="health">100</span>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="hint-text">Quiz muncul setiap 5 detik!</div>
         </div>
-
-        <!-- LAYAR MENU / GAME OVER -->
-        <div id="menu-overlay" class="ui-layer">
-            <h1 id="menu-title" class="start-title">GALAXY DEFENDER</h1>
-            <p id="menu-subtitle">Hindari asteroid. Gunakan tombol panah atau keyboard.</p>
-            <button id="start-btn" class="btn btn-start">MULAI</button>
+        
+        <!-- Touch Controls -->
+        <div class="touch-controls">
+            <div class="control-area">
+                <div class="d-pad">
+                    <div class="btn-control" id="btnLeft">←</div>
+                    <div class="btn-control" id="btnRight">→</div>
+                </div>
+            </div>
+            <div class="control-area">
+                <div class="btn-shoot" id="btnShoot">FIRE</div>
+            </div>
+        </div>
+        
+        <div class="pause-indicator" id="pauseIndicator">QUIZ TIME!</div>
+        
+        <!-- Quiz Modal -->
+        <div class="quiz-modal" id="quizModal">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <span class="quiz-title">🌍 Geografi Kelas 10</span>
+                    <span class="quiz-timer" id="quizTimer">10s</span>
+                </div>
+                <div class="question-text" id="questionText">Loading...</div>
+                <div class="answers-grid" id="answersGrid"></div>
+                <div class="feedback" id="feedback"></div>
+            </div>
+        </div>
+        
+        <!-- Menu Screen -->
+        <div class="menu-screen" id="menuScreen">
+            <h1>GeoSpace</h1>
+            <div class="subtitle">
+                BELAJAR GEOGRAFI KELAS 10<br>
+                Sambil Bermain!
+            </div>
+            <button class="btn" onclick="startGame()">MULAI</button>
+            <div class="controls-info">
+                Gunakan tombol ← → untuk bergerak<br>
+                Tombol FIRE untuk menembak<br>
+                Jawab quiz setiap 5 detik!
+            </div>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div class="game-over-screen" id="gameOverScreen">
+            <h1>Selesai!</h1>
+            <div class="final-score">Skor: <span id="finalScore">0</span></div>
+            <div class="quiz-stats">
+                Benar: <span id="correctAnswers">0</span> | Salah: <span id="wrongAnswers">0</span>
+            </div>
+            <button class="btn" onclick="restartGame()">MAIN LAGI</button>
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score-display');
-        const menuOverlay = document.getElementById('menu-overlay');
-        const startBtn = document.getElementById('start-btn');
-        const menuTitle = document.getElementById('menu-title');
-        const menuSubtitle = document.getElementById('menu-subtitle');
         
-        // Tombol On-Screen
-        const btnLeft = document.getElementById('btn-left');
-        const btnRight = document.getElementById('btn-right');
-
+        // UI Elements
+        const menuScreen = document.getElementById('menuScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const quizModal = document.getElementById('quizModal');
+        const pauseIndicator = document.getElementById('pauseIndicator');
+        const scoreElement = document.getElementById('score');
+        const healthElement = document.getElementById('health');
+        const streakElement = document.getElementById('streak');
+        const finalScoreElement = document.getElementById('finalScore');
+        const correctAnswersElement = document.getElementById('correctAnswers');
+        const wrongAnswersElement = document.getElementById('wrongAnswers');
+        const questionText = document.getElementById('questionText');
+        const answersGrid = document.getElementById('answersGrid');
+        const quizTimer = document.getElementById('quizTimer');
+        const feedback = document.getElementById('feedback');
+        const progressFill = document.getElementById('progressFill');
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const btnShoot = document.getElementById('btnShoot');
+        
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 140; // Space for controls
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Game State
         let gameRunning = false;
+        let gamePaused = false;
         let score = 0;
+        let health = 100;
+        let streak = 0;
         let frameCount = 0;
-        let animationId;
-
-        // Player Setup
+        let correctCount = 0;
+        let wrongCount = 0;
+        let lastQuizTime = 0;
+        const QUIZ_INTERVAL = 5000;
+        
+        // Touch State
+        let touchState = { left: false, right: false };
+        
+        // Touch Controls
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); touchState.left = true; });
+        btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); touchState.left = false; });
+        btnLeft.addEventListener('mousedown', () => touchState.left = true);
+        btnLeft.addEventListener('mouseup', () => touchState.left = false);
+        
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); touchState.right = true; });
+        btnRight.addEventListener('touchend', (e) => { e.preventDefault(); touchState.right = false; });
+        btnRight.addEventListener('mousedown', () => touchState.right = true);
+        btnRight.addEventListener('mouseup', () => touchState.right = false);
+        
+        btnShoot.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            if (gameRunning && !gamePaused) shoot(); 
+        });
+        btnShoot.addEventListener('mousedown', () => {
+            if (gameRunning && !gamePaused) shoot();
+        });
+        
+        // Soal Geografi Kelas 10 (6 Soal)
+        const questionBank = [
+            {
+                question: "Yang BUKAN komponen abiotik adalah...",
+                options: ["Air", "Cahaya matahari", "Jamur", "Tanah"],
+                correct: 2,
+                explanation: "Jamur adalah komponen biotik (makhluk hidup)."
+            },
+            {
+                question: "Lapisan atmosfer dengan ozon (O3) adalah...",
+                options: ["Troposfer", "Stratosfer", "Mesosfer", "Termosfer"],
+                correct: 1,
+                explanation: "Ozon terletak di stratosfer (20-35 km)."
+            },
+            {
+                question: "Proses pembentukan tanah disebut...",
+                options: ["Erosi", "Sedimentasi", "Pedogenesis", "Laterisasi"],
+                correct: 2,
+                explanation: "Pedogenesis = proses pembentukan tanah."
+            },
+            {
+                question: "Lempeng saling mendekat menyebabkan...",
+                options: ["Palung laut", "Dorsal laut", "Lembah graben", "Marginal sea"],
+                correct: 0,
+                explanation: "Konvergensi lempeng membentuk palung laut."
+            },
+            {
+                question: "Iklim Indonesia menurut Köppen adalah...",
+                options: ["A (Tropis)", "B (Kering)", "C (Sedang)", "D (Kontinental)"],
+                correct: 0,
+                explanation: "Indonesia beriklim A (tropis basah)."
+            },
+            {
+                question: "Lempeng yang tenggelam ke mantel disebut...",
+                options: ["Ridge", "Slab", "Hotspot", "Plume"],
+                correct: 1,
+                explanation: "Slab adalah lempeng yang tenggelam (subduksi)."
+            }
+        ];
+        
+        // Player
         const player = {
             x: canvas.width / 2,
-            y: canvas.height - 70,
-            radius: 15,
+            y: canvas.height - 80,
+            width: 35,
+            height: 35,
             speed: 6,
-            dx: 0,
-            color: '#00d2ff'
+            color: '#00ffff'
         };
-
+        
+        let bullets = [];
         let enemies = [];
         let particles = [];
         let stars = [];
-
-        // --- INPUT CONTROLS (Keyboard & On-Screen Buttons) ---
+        let usedQuestions = [];
+        let currentQuestion = null;
+        let quizTimeLeft = 10;
+        let quizTimerInterval = null;
         
-        // Keyboard
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight' || e.key === 'd') setMoveRight();
-            if (e.key === 'ArrowLeft' || e.key === 'a') setMoveLeft();
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if ((e.key === 'ArrowRight' || e.key === 'd') && player.dx > 0) stopMove();
-            if ((e.key === 'ArrowLeft' || e.key === 'a') && player.dx < 0) stopMove();
-        });
-
-        // Fungsi Gerak
-        function setMoveLeft() { player.dx = -player.speed; btnLeft.classList.add('active'); }
-        function setMoveRight() { player.dx = player.speed; btnRight.classList.add('active'); }
-        function stopMove() { 
-            player.dx = 0; 
-            btnLeft.classList.remove('active'); 
-            btnRight.classList.remove('active'); 
-        }
-
-        // Event Listener Tombol Panah (Mouse & Touch)
-        // Tombol Kiri
-        const handleLeftStart = (e) => { if(e.cancelable) e.preventDefault(); setMoveLeft(); };
-        const handleLeftEnd = (e) => { if(e.cancelable) e.preventDefault(); stopMove(); };
-        
-        btnLeft.addEventListener('mousedown', handleLeftStart);
-        btnLeft.addEventListener('touchstart', handleLeftStart);
-        btnLeft.addEventListener('mouseup', handleLeftEnd);
-        btnLeft.addEventListener('touchend', handleLeftEnd);
-        btnLeft.addEventListener('mouseleave', handleLeftEnd); // Jika mouse keluar tombol
-
-        // Tombol Kanan
-        const handleRightStart = (e) => { if(e.cancelable) e.preventDefault(); setMoveRight(); };
-        const handleRightEnd = (e) => { if(e.cancelable) e.preventDefault(); stopMove(); };
-
-        btnRight.addEventListener('mousedown', handleRightStart);
-        btnRight.addEventListener('touchstart', handleRightStart);
-        btnRight.addEventListener('mouseup', handleRightEnd);
-        btnRight.addEventListener('touchend', handleRightEnd);
-        btnRight.addEventListener('mouseleave', handleRightEnd);
-
-        // --- BACKGROUND STARS ---
-        class Star {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2;
-                this.speed = Math.random() * 3 + 0.5;
-                this.brightness = Math.random();
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 60; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 2 + 0.5
+                });
             }
-            update() {
-                this.y += this.speed;
-                this.brightness += (Math.random() - 0.5) * 0.1;
-                if (this.brightness > 1) this.brightness = 1;
-                if (this.brightness < 0.3) this.brightness = 0.3;
-                if (this.y > canvas.height) {
-                    this.y = 0;
-                    this.x = Math.random() * canvas.width;
+        }
+        
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1,
+                    color: color,
+                    size: Math.random() * 3 + 2
+                });
+            }
+        }
+        
+        function shoot() {
+            bullets.push({
+                x: player.x,
+                y: player.y - 15,
+                width: 3,
+                height: 12,
+                speed: 10,
+                color: '#00ff00'
+            });
+        }
+        
+        function spawnEnemy() {
+            const size = Math.random() * 15 + 25;
+            enemies.push({
+                x: Math.random() * (canvas.width - size),
+                y: -size,
+                width: size,
+                height: size,
+                speed: Math.random() * 2 + 2,
+                color: '#ff00ff',
+                rotation: 0,
+                rotSpeed: (Math.random() - 0.5) * 0.1
+            });
+        }
+        
+        // QUIZ SYSTEM
+        function showQuiz() {
+            gamePaused = true;
+            pauseIndicator.style.display = 'block';
+            
+            let availableQuestions = questionBank.filter((q, i) => !usedQuestions.includes(i));
+            if (availableQuestions.length === 0) {
+                usedQuestions = [];
+                availableQuestions = questionBank;
+            }
+            
+            const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+            const questionIndex = questionBank.indexOf(availableQuestions[randomIndex]);
+            usedQuestions.push(questionIndex);
+            currentQuestion = questionBank[questionIndex];
+            
+            questionText.textContent = currentQuestion.question;
+            answersGrid.innerHTML = '';
+            feedback.textContent = '';
+            feedback.className = 'feedback';
+            
+            currentQuestion.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = option;
+                btn.onclick = () => checkAnswer(index, btn);
+                answersGrid.appendChild(btn);
+            });
+            
+            setTimeout(() => {
+                quizModal.style.display = 'flex';
+                pauseIndicator.style.display = 'none';
+                startQuizTimer();
+            }, 400);
+        }
+        
+        function startQuizTimer() {
+            quizTimeLeft = 10;
+            quizTimer.textContent = quizTimeLeft + 's';
+            
+            quizTimerInterval = setInterval(() => {
+                quizTimeLeft--;
+                quizTimer.textContent = quizTimeLeft + 's';
+                
+                if (quizTimeLeft <= 0) {
+                    clearInterval(quizTimerInterval);
+                    checkAnswer(-1, null);
                 }
-            }
-            draw() {
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.brightness})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            }, 1000);
         }
-
-        for (let i = 0; i < 50; i++) stars.push(new Star());
-
-        // --- GAMBAR PLAYER ---
-        function drawPlayer() {
+        
+        function checkAnswer(selectedIndex, btnElement) {
+            clearInterval(quizTimerInterval);
+            
+            const buttons = answersGrid.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => btn.classList.add('disabled'));
+            
+            const correctIndex = currentQuestion.correct;
+            
+            if (selectedIndex === correctIndex) {
+                if (btnElement) btnElement.classList.add('correct');
+                feedback.textContent = '✓ Benar! +' + (100 + (streak * 10)) + ' poin';
+                feedback.className = 'feedback correct';
+                score += 100 + (streak * 10);
+                streak++;
+                correctCount++;
+            } else {
+                if (btnElement) btnElement.classList.add('wrong');
+                buttons[correctIndex].classList.add('correct');
+                feedback.textContent = '✗ ' + currentQuestion.explanation;
+                feedback.className = 'feedback wrong';
+                streak = 0;
+                wrongCount++;
+                health = Math.max(0, health - 10);
+            }
+            
+            scoreElement.textContent = score;
+            streakElement.textContent = streak;
+            healthElement.textContent = health;
+            
+            setTimeout(() => {
+                quizModal.style.display = 'none';
+                gamePaused = false;
+                lastQuizTime = Date.now();
+                
+                if (health <= 0) gameOver();
+            }, 2000);
+        }
+        
+        function update() {
+            if (!gameRunning || gamePaused) return;
+            
+            frameCount++;
+            
+            // Progress bar
+            const timeSinceLastQuiz = Date.now() - lastQuizTime;
+            const progress = (timeSinceLastQuiz / QUIZ_INTERVAL) * 100;
+            progressFill.style.width = Math.min(progress, 100) + '%';
+            
+            if (timeSinceLastQuiz >= QUIZ_INTERVAL) {
+                showQuiz();
+                return;
+            }
+            
+            // Move player (touch)
+            if (touchState.left) {
+                player.x = Math.max(player.width/2, player.x - player.speed);
+            }
+            if (touchState.right) {
+                player.x = Math.min(canvas.width - player.width/2, player.x + player.speed);
+            }
+            
+            // Update stars
+            stars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            
+            // Update bullets
+            bullets = bullets.filter(bullet => {
+                bullet.y -= bullet.speed;
+                return bullet.y > -bullet.height;
+            });
+            
+            // Spawn enemies
+            if (frameCount % 50 === 0) spawnEnemy();
+            
+            // Update enemies
+            enemies = enemies.filter(enemy => {
+                enemy.y += enemy.speed;
+                enemy.rotation += enemy.rotSpeed;
+                
+                // Collision player
+                const dx = enemy.x - player.x;
+                const dy = enemy.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (enemy.width + player.width) / 2) {
+                    health -= 15;
+                    healthElement.textContent = Math.max(0, health);
+                    createParticles(enemy.x, enemy.y, '#ff00ff', 10);
+                    createParticles(player.x, player.y, '#00ffff', 8);
+                    streak = 0;
+                    streakElement.textContent = streak;
+                    
+                    if (health <= 0) gameOver();
+                    return false;
+                }
+                
+                // Collision bullets
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const bullet = bullets[i];
+                    const bdx = enemy.x - bullet.x;
+                    const bdy = enemy.y - bullet.y;
+                    const bDist = Math.sqrt(bdx * bdx + bdy * bdy);
+                    
+                    if (bDist < enemy.width / 2 + bullet.width) {
+                        score += 30;
+                        scoreElement.textContent = score;
+                        createParticles(enemy.x, enemy.y, '#ff00ff', 15);
+                        bullets.splice(i, 1);
+                        return false;
+                    }
+                }
+                
+                return enemy.y < canvas.height + enemy.height;
+            });
+            
+            // Update particles
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                p.vx *= 0.98;
+                p.vy *= 0.98;
+                return p.life > 0;
+            });
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 26, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Stars
+            stars.forEach(star => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.3})`;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+            
+            // Player
             ctx.save();
             ctx.translate(player.x, player.y);
-            if (player.dx > 0) ctx.rotate(0.15);
-            if (player.dx < 0) ctx.rotate(-0.15);
-
-            ctx.beginPath();
-            ctx.moveTo(0, -20);
-            ctx.lineTo(15, 15);
-            ctx.lineTo(0, 10);
-            ctx.lineTo(-15, 15);
-            ctx.closePath();
-            ctx.fillStyle = player.color;
             ctx.shadowBlur = 15;
             ctx.shadowColor = player.color;
-            ctx.fill();
-
+            
             ctx.beginPath();
-            ctx.moveTo(0, -10);
-            ctx.lineTo(3, 2);
-            ctx.lineTo(-3, 2);
+            ctx.moveTo(0, -player.height/2);
+            ctx.lineTo(-player.width/2, player.height/2);
+            ctx.lineTo(0, player.height/2 - 8);
+            ctx.lineTo(player.width/2, player.height/2);
             ctx.closePath();
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = player.color;
             ctx.fill();
-
+            
+            // Engine
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff6600';
             ctx.beginPath();
-            ctx.moveTo(-5, 12);
-            ctx.lineTo(0, 12 + Math.random() * 15);
-            ctx.lineTo(5, 12);
-            ctx.fillStyle = '#ff9900';
-            ctx.shadowColor = '#ff5500';
+            ctx.moveTo(-6, player.height/2 - 5);
+            ctx.lineTo(0, player.height/2 + 12 + Math.random() * 8);
+            ctx.lineTo(6, player.height/2 - 5);
+            ctx.closePath();
+            ctx.fillStyle = '#ff6600';
             ctx.fill();
             ctx.restore();
-        }
-
-        function updatePlayer() {
-            player.x += player.dx;
-            if (player.x < 20) player.x = 20;
-            if (player.x > canvas.width - 20) player.x = canvas.width - 20;
-        }
-
-        // --- MUSUH (ASTEROID) ---
-        class Enemy {
-            constructor() {
-                this.radius = Math.random() * 15 + 15;
-                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
-                this.y = -this.radius;
-                this.speed = Math.random() * 2 + 2 + (score * 0.002);
-                this.angle = 0;
-                this.spinSpeed = (Math.random() - 0.5) * 0.1;
-                this.vertices = [];
-                const numVertices = 8;
-                for (let i = 0; i < numVertices; i++) {
-                    const angle = (i / numVertices) * Math.PI * 2;
-                    const r = this.radius * (0.8 + Math.random() * 0.4);
-                    this.vertices.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
-                }
-            }
-            draw() {
+            
+            // Bullets
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00ff00';
+            bullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x - bullet.width/2, bullet.y, bullet.width, bullet.height);
+            });
+            
+            // Enemies
+            enemies.forEach(enemy => {
                 ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.beginPath();
-                ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
-                for (let i = 1; i < this.vertices.length; i++) {
-                    ctx.lineTo(this.vertices[i].x, this.vertices[i].y);
-                }
-                ctx.closePath();
-                ctx.fillStyle = '#6a4c93';
-                ctx.strokeStyle = '#ff0055';
-                ctx.lineWidth = 2;
+                ctx.translate(enemy.x, enemy.y);
+                ctx.rotate(enemy.rotation);
                 ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ff0055';
-                ctx.fill();
-                ctx.stroke();
+                ctx.shadowColor = enemy.color;
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(-enemy.width/2, -enemy.height/2, enemy.width, enemy.height);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-enemy.width/4, -enemy.height/4, enemy.width/2, enemy.height/2);
                 ctx.restore();
-            }
-            update() {
-                this.y += this.speed;
-                this.angle += this.spinSpeed;
-            }
+            });
+            
+            // Particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+                ctx.restore();
+            });
+            
+            ctx.shadowBlur = 0;
         }
-
-        // --- PARTIKEL ---
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.size = Math.random() * 3 + 1;
-                this.speedX = Math.random() * 6 - 3;
-                this.speedY = Math.random() * 6 - 3;
-                this.color = color;
-                this.life = 1.0;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                this.life -= 0.02;
-            }
-            draw() {
-                ctx.globalAlpha = this.life;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1.0;
-            }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
         }
-
-        // --- GAME LOOP ---
-        function animate() {
-            if (!gameRunning && particles.length === 0) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Background
-            stars.forEach(star => { star.update(); star.draw(); });
-
-            if (gameRunning) {
-                updatePlayer();
-                drawPlayer();
-
-                let spawnRate = 60;
-                if (score > 500) spawnRate = 45;
-                if (score > 1000) spawnRate = 30;
-
-                if (frameCount % spawnRate === 0) enemies.push(new Enemy());
-
-                for (let i = 0; i < enemies.length; i++) {
-                    let e = enemies[i];
-                    e.update();
-                    e.draw();
-
-                    const dist = Math.hypot(player.x - e.x, player.y - e.y);
-                    if (dist - e.radius - player.radius < -5) {
-                        gameOver();
-                    }
-
-                    if (e.y > canvas.height + e.radius) {
-                        enemies.splice(i, 1);
-                        score += 10;
-                        scoreEl.innerText = `Skor: ${score}`;
-                        i--;
-                    }
-                }
-                score++;
-                scoreEl.innerText = `Skor: ${score}`;
-                frameCount++;
-            }
-
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-                if (particles[i].life <= 0) {
-                    particles.splice(i, 1);
-                    i--;
-                }
-            }
-
-            if (gameRunning || particles.length > 0) animationId = requestAnimationFrame(animate);
-        }
-
+        
         function startGame() {
+            menuScreen.style.display = 'none';
+            gameRunning = true;
+            gamePaused = false;
             score = 0;
-            frameCount = 0;
+            health = 100;
+            streak = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            usedQuestions = [];
+            bullets = [];
             enemies = [];
             particles = [];
             player.x = canvas.width / 2;
-            scoreEl.innerText = "Skor: 0";
-            gameRunning = true;
-            
-            // Reset Tampilan Menu
-            menuOverlay.classList.add('hidden');
-            
-            animate();
+            player.y = canvas.height - 80;
+            scoreElement.textContent = '0';
+            healthElement.textContent = '100';
+            streakElement.textContent = '0';
+            lastQuizTime = Date.now();
+            resizeCanvas();
+            initStars();
         }
-
+        
         function gameOver() {
             gameRunning = false;
-            
-            // Efek Ledakan
-            for (let i = 0; i < 30; i++) {
-                particles.push(new Particle(player.x, player.y, '#00d2ff'));
-                particles.push(new Particle(player.x, player.y, '#ff9900'));
-            }
-            
-            setTimeout(() => {
-                // Ubah ke Game Over Style
-                menuTitle.innerText = "GAME OVER";
-                menuTitle.classList.remove('start-title'); // Hapus warna biru
-                menuSubtitle.innerText = `Skor Akhir: ${score}`;
-                startBtn.innerText = "PLAY AGAIN";
-                startBtn.classList.remove('btn-start'); // Ubah jadi tombol merah
-                menuOverlay.classList.remove('hidden');
-            }, 800);
+            finalScoreElement.textContent = score;
+            correctAnswersElement.textContent = correctCount;
+            wrongAnswersElement.textContent = wrongCount;
+            gameOverScreen.style.display = 'flex';
         }
-
-        startBtn.addEventListener('click', () => {
-            // Reset tombol ke warna biru jika sebelumnya merah (restart)
-            startBtn.classList.add('btn-start');
+        
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
             startGame();
-        });
-
+        }
+        
+        initStars();
+        gameLoop();
     </script>
 </body>
-  </html>
+</html>
